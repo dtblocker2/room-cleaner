@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import api, { API_BASE } from '../utils/api';
 
-export default function Login() {
+const Login = () => {
   const { login } = useAuth();
-  const [form, setForm] = useState({ email: '', password: '' });
+  const { t, lang, toggleLanguage } = useLanguage();
+  const navigate = useNavigate();
+  const [role, setRole] = useState('student');
+  const [form, setForm] = useState({ email: '', password: '', workerId: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -12,44 +17,98 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const { ok, message } = await login(form.email, form.password);
-    if (!ok) setError(message || 'Login failed');
-    setLoading(false);
+    try {
+      const payload = { ...form, role };
+      const res = await api.post('/auth/login', payload);
+      login(res.data.user, res.data.token);
+      navigate('/dashboard');
+    } catch (err) {
+      if (err.code === 'ERR_NETWORK') {
+        setError(`Cannot connect to server at ${API_BASE}. Make sure backend is running.`);
+      } else {
+        setError(err.response?.data?.message || 'Login failed');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="auth-page">
-      <div className="auth-card fade-in">
-        <div className="logo-text">🧹</div>
-        <h1>Welcome Back</h1>
-        <p className="subtitle">Sign in to CleanMyRoom</p>
-
-        {error && (
-          <div className="alert alert-error">
-            {error} <button onClick={() => setError('')}>×</button>
+      <div className="auth-container">
+        <div className="auth-header">
+          <h1>🏠 HMS</h1>
+          <h2>{t('login')}</h2>
+          <div className="lang-toggle-auth" onClick={toggleLanguage}>
+            {lang === 'en' ? 'ਪੰਜਾਬੀ' : 'English'}
           </div>
-        )}
+        </div>
+
+        <div className="role-selector">
+          {['student', 'admin', 'worker'].map(r => (
+            <button
+              key={r}
+              className={`role-btn ${role === r ? 'active' : ''}`}
+              onClick={() => setRole(r)}
+              type="button"
+            >
+              {r === 'student' ? '🎓' : r === 'admin' ? '👔' : '🔧'} {t(r)}
+            </button>
+          ))}
+        </div>
+
+        {error && <div className="error-msg">{error}</div>}
 
         <form onSubmit={handleSubmit}>
+          {role === 'worker' ? (
+            <div className="form-group">
+              <label>{t('workerId')}</label>
+              <input
+                type="text"
+                value={form.workerId}
+                onChange={e => setForm({ ...form, workerId: e.target.value })}
+                required
+                autoComplete="username"
+              />
+            </div>
+          ) : (
+            <div className="form-group">
+              <label>{t('email')}</label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={e => setForm({ ...form, email: e.target.value })}
+                required
+                autoComplete="email"
+              />
+            </div>
+          )}
+
           <div className="form-group">
-            <label>Email</label>
-            <input type="email" required placeholder="you@example.com" value={form.email}
-              onChange={e => setForm({...form, email: e.target.value})} />
+            <label>{t('password')}</label>
+            <input
+              type="password"
+              value={form.password}
+              onChange={e => setForm({ ...form, password: e.target.value })}
+              required
+              autoComplete="current-password"
+            />
           </div>
-          <div className="form-group">
-            <label>Password</label>
-            <input type="password" required placeholder="••••••••" value={form.password}
-              onChange={e => setForm({...form, password: e.target.value})} />
-          </div>
-          <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign In'}
+
+          <button type="submit" className="btn-primary btn-large" disabled={loading}>
+            {loading ? t('loading') : t('login')}
           </button>
         </form>
 
-        <div className="auth-footer">
-          Don't have an account? <Link to="/register" className="text-link">Sign Up</Link>
-        </div>
+        {/* Show the API URL being used (helpful for debugging) */}
+        <p className="api-debug">API: {API_BASE}</p>
+
+        <p className="auth-link">
+          {t('noAccount')} <Link to="/signup">{t('signup')}</Link>
+        </p>
       </div>
     </div>
   );
-}
+};
+
+export default Login;

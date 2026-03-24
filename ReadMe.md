@@ -1,71 +1,124 @@
-🚀 SETUP & RUNNING INSTRUCTIONS
+HOW TO RUN LOCALLY
 Prerequisites
-Node.js (v16+): https://nodejs.org
-MongoDB: Install locally (https://www.mongodb.com/try/download/community) OR use MongoDB Atlas (free cloud)
-Step-by-step Setup
+Node.js v16+ installed
+MongoDB running locally (or MongoDB Atlas URI)
+npm or yarn
+Step 1: Clone / Set Up Project
 Bash
 
-# 1. Create the project folder and add all files as shown above
-mkdir hostel-cleaning-app
-cd hostel-cleaning-app
+mkdir hostel-management-system
+cd hostel-management-system
+Step 2: Backend Setup
+Bash
 
-# 2. Create the folder structure
-mkdir -p backend/config backend/middleware backend/models backend/routes
-mkdir -p frontend/public frontend/src/context frontend/src/components frontend/src/pages
+mkdir -p backend/{config,middleware,models,routes,uploads}
 
-# 3. Add all the files listed above to their respective paths
+# Navigate to backend
+cd backend
 
-# 4. Install all dependencies
-npm run install-all
-# (or manually: cd backend && npm install && cd ../frontend && npm install)
+# Initialize and install dependencies
+npm init -y
+npm install express mongoose cors dotenv bcryptjs jsonwebtoken multer
+npm install -D nodemon
+Copy all the backend files into their respective paths as shown above.
 
-# 5. Make sure MongoDB is running
-# On Mac:   brew services start mongodb-community
-# On Linux: sudo systemctl start mongod
-# On Windows: MongoDB should run as a service
+Step 3: Frontend Setup
+Bash
 
-# 6. Seed the database with default accounts
-npm run seed
+# From project root
+cd ..
+npx create-react-app frontend
+cd frontend
+npm install axios react-router-dom
+Replace the src/ directory content with all the frontend files shown above.
 
-# 7. Build the frontend
-npm run build
+Step 4: Start MongoDB
+Bash
 
-# 8. Start the server
-npm start
-Default Test Accounts (created by seed)
-Role	Email	Password
-Staff	staff@hostel.com	staff123
-Student	student@hostel.com	student123
-Accessing from Other Devices on WiFi
-When the server starts, it prints your Network URL like:
+# If using local MongoDB
+mongod
+Or update backend/.env with your MongoDB Atlas URI:
 
 text
 
-🚀  Server running on port 5000
-   Local:   http://localhost:5000
-   Network: http://192.168.1.42:5000
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/hostel_management
+Step 5: Run Backend
+Bash
 
-   📱 Share the Network URL with hostel members!
-Share that http://192.168.x.x:5000 URL — anyone on the same WiFi can open it on their phone or laptop browser.
+cd backend
+npm run dev
+# Server starts on http://localhost:5000
+Step 6: Run Frontend
+Bash
 
-Windows Firewall: If others can't connect, allow port 5000 through Windows Firewall:
-Settings → Firewall → Allow an app → Add port 5000 (TCP)
+cd frontend
+npm start
+# React app starts on http://localhost:3000
+Step 7: Test the Application
+Open http://localhost:3000 in your browser
+Sign up as Admin first (to post notices, assign workers)
+Sign up as Worker (to receive tasks)
+Sign up as Student (to raise complaints, request cleaning, etc.)
+DEPLOYMENT GUIDE (Vercel + MongoDB Atlas)
+MongoDB Atlas
+Go to mongodb.com/atlas
+Create a free cluster
+Create a database user
+Whitelist IP 0.0.0.0/0
+Get connection string and update .env
+Deploy Backend (Render / Railway)
+Bash
 
-Staff Registration
-New staff members can self-register using the code STAFF2024 (configurable in backend/.env → STAFF_CODE).
+# Using Render.com:
+# 1. Push backend code to a GitHub repo
+# 2. Create new Web Service on Render
+# 3. Set environment variables (MONGODB_URI, JWT_SECRET, PORT)
+# 4. Deploy
+Deploy Frontend (Vercel)
+Bash
 
-Key Features Delivered
-Feature	Details
-Student ticket creation	Date, time window, priority, special instructions
-Staff accepts & completes	Browse pending tickets, accept, mark done
-Student verification	Verify or reject with star rating & feedback
-Settings page	Edit name, email, room, block, phone, password
-Dashboard stats	Visual stat cards with live counts
-Priority levels	Low / Medium / High / Urgent with color coding
-Status tracking	Visual timeline: Pending → Accepted → Completed → Verified
-Auto-refresh	Dashboards refresh automatically (30s student, 15s staff)
-Mobile responsive	Works on phone browsers with hamburger menu
-LAN hosting	Auto-detects and displays network IP on startup
-Role-based access	Separate views and permissions for students & staff
-Rating system	1–5 star rating with written feedback
-Seed script	One-command setup with test accounts
+cd frontend
+
+# Create .env.production
+echo "REACT_APP_API_URL=https://your-backend-url.com/api" > .env.production
+
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
+vercel
+API ENDPOINTS REFERENCE
+Method	Endpoint	Auth	Description
+POST	/api/auth/signup	No	Register user
+POST	/api/auth/login	No	Login user
+GET	/api/auth/me	Yes	Get current user
+GET	/api/complaints	Yes	Get complaints
+POST	/api/complaints	Student	Create complaint
+PUT	/api/complaints/:id	Yes	Update complaint
+GET	/api/cleaning	Yes	Get cleaning requests
+POST	/api/cleaning	Student	Request cleaning
+PUT	/api/cleaning/:id	Yes	Update cleaning status
+PUT	/api/cleaning/:id/rate	Student	Rate cleaning
+GET	/api/laundry	Yes	Get laundry requests
+POST	/api/laundry	Student	Submit laundry
+PUT	/api/laundry/:id	Yes	Update laundry status
+GET	/api/mess	Yes	Get mess feedback
+POST	/api/mess	Student	Submit feedback
+GET	/api/mess/stats	Yes	Get rating averages
+GET	/api/lostfound	Yes	Get lost & found items
+POST	/api/lostfound	Yes	Post item
+PUT	/api/lostfound/:id	Yes	Update item status
+GET	/api/notices	Yes	Get notices
+POST	/api/notices	Admin	Post notice
+DELETE	/api/notices/:id	Admin	Delete notice
+GET	/api/notifications	Yes	Get notifications
+GET	/api/notifications/unread-count	Yes	Get unread count
+PUT	/api/notifications/:id/read	Yes	Mark as read
+PUT	/api/notifications/read-all	Yes	Mark all read
+GET	/api/admin/stats	Admin	Get dashboard stats
+GET	/api/admin/complaints	Admin	Get all complaints
+GET	/api/admin/workers	Admin	Get workers list
+PUT	/api/admin/assign/:id	Admin	Assign worker
+GET	/api/worker/tasks	Worker	Get assigned tasks
+PUT	/api/worker/tasks/:id	Worker	Update task status
+GET	/api/worker/stats	Worker	Get worker stats

@@ -1,77 +1,39 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
-export function AuthProvider({ children }) {
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
-  const apiFetch = useCallback(async (url, options = {}) => {
-    const headers = { 'Content-Type': 'application/json', ...options.headers };
-    const t = token || localStorage.getItem('token');
-    if (t) headers['Authorization'] = `Bearer ${t}`;
-    const res = await fetch(url, { ...options, headers });
-    const data = await res.json();
-    if (res.status === 401) {
-      localStorage.removeItem('token');
-      setToken(null);
-      setUser(null);
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser && token) {
+      setUser(JSON.parse(storedUser));
     }
-    return { ok: res.ok, data };
+    setLoading(false);
   }, [token]);
 
-  useEffect(() => {
-    if (token) {
-      apiFetch('/api/auth/me')
-        .then(({ ok, data }) => {
-          if (ok) setUser(data.user);
-          else { localStorage.removeItem('token'); setToken(null); }
-        })
-        .catch(() => { localStorage.removeItem('token'); setToken(null); })
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
-  }, []); // eslint-disable-line
-
-  const login = async (email, password) => {
-    const { ok, data } = await apiFetch('/api/auth/login', {
-      method: 'POST', body: JSON.stringify({ email, password })
-    });
-    if (ok) {
-      localStorage.setItem('token', data.token);
-      setToken(data.token);
-      setUser(data.user);
-    }
-    return { ok, message: data.message };
-  };
-
-  const register = async (formData) => {
-    const { ok, data } = await apiFetch('/api/auth/register', {
-      method: 'POST', body: JSON.stringify(formData)
-    });
-    if (ok) {
-      localStorage.setItem('token', data.token);
-      setToken(data.token);
-      setUser(data.user);
-    }
-    return { ok, message: data.message };
+  const login = (userData, authToken) => {
+    setUser(userData);
+    setToken(authToken);
+    localStorage.setItem('token', authToken);
+    localStorage.setItem('user', JSON.stringify(userData));
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
     setUser(null);
+    setToken(null);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
   };
 
-  const updateUser = (u) => setUser(u);
-
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateUser, apiFetch }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
 export const useAuth = () => useContext(AuthContext);
